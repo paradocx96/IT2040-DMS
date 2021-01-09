@@ -150,3 +150,99 @@ DECLARE @Salary INT
 EXEC get_managerInfo 'Academic',@MngName output,@Salary output
 PRINT CONCAT('Name : ', @MngName)
 PRINT CONCAT('Salary : ', @Salary)
+
+
+-- TRIGGERS --
+
+CREATE TABLE Account(
+    accountNo int PRIMARY KEY,
+    custId int, 
+    branch varchar(20), 
+    balance real
+)
+
+CREATE TABLE AccountAudit(
+    accountNo int,
+    balance real, 
+    date DATETIME
+)
+
+SELECT * FROM Account
+SELECT * FROM AccountAudit
+
+DELETE Account
+DROP TRIGGER tr_accountAudit
+
+-- Insert / Update --
+
+CREATE TRIGGER tr_accountAudit
+ON Account
+FOR INSERT,UPDATE
+AS
+BEGIN
+SELECT * FROM inserted
+END
+
+CREATE TRIGGER tr_accountAudit
+ON Account
+FOR INSERT,UPDATE
+AS
+BEGIN
+DECLARE @acc int
+DECLARE @balance real
+SELECT @acc = accountNo, @balance = balance FROM inserted
+INSERT INTO AccountAudit values (@acc,@balance,getdate())
+END
+
+INSERT into Account VALUES(1000,1,'Gampaha',40000)
+INSERT into Account VALUES(1001,2,'Gampaha',35000)
+
+UPDATE Account SET balance = balance + 10000 WHERE accountNo = 1000
+
+
+-- EX2 --
+
+SELECT * FROM Works
+
+CREATE TRIGGER tr_checkUser
+ON Works
+FOR INSERT
+AS
+BEGIN
+DECLARE @eid int, @tot int
+SELECT @eid = eid FROM inserted
+SELECT @tot = COUNT(*) FROM Works WHERE eid = @eid
+if @tot > 2
+BEGIN
+PRINT 'Cannot work in more than 2 Departments'
+ROLLBACK TRANSACTION
+END
+END
+
+
+INSERT into Works VALUES (1000,'SESD',10)
+
+
+-- EX3 --
+
+SELECT * FROM Works
+
+CREATE TRIGGER tr_checkUserPercentage
+ON Works
+FOR UPDATE
+AS
+BEGIN
+DECLARE @eid int, @tot int
+SELECT @eid = eid FROM inserted
+SELECT @tot = SUM(pct_time) FROM Works WHERE eid = @eid
+if @tot > 100
+BEGIN
+PRINT 'Cannot work in more than 100%'
+ROLLBACK TRANSACTION
+END
+END
+
+
+UPDATE Works SET pct_time = 60 WHERE eid = 1000 and did = 'Admin'
+
+
